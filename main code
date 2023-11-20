@@ -1,0 +1,108 @@
+import pygame
+import sys
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 400, 400
+GRID_SIZE = 4
+GRID_WIDTH = WIDTH // GRID_SIZE
+GRID_HEIGHT = HEIGHT // GRID_SIZE
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+FONT_SIZE = 36
+
+# Initialize the screen
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption('1024 Game')
+
+# Initialize fonts
+font = pygame.font.Font(None, FONT_SIZE)
+
+# Function to draw the grid
+def draw_grid(grid):
+    for row in range(GRID_SIZE):
+        for col in range(GRID_SIZE):
+            pygame.draw.rect(screen, WHITE, (col * GRID_WIDTH, row * GRID_HEIGHT, GRID_WIDTH, GRID_HEIGHT), 2)
+            if grid[row][col] != 0:
+                text = font.render(str(grid[row][col]), True, BLACK)
+                text_rect = text.get_rect(center=(col * GRID_WIDTH + GRID_WIDTH // 2, row * GRID_HEIGHT + GRID_HEIGHT // 2))
+                screen.blit(text, text_rect)
+
+# Function to generate a new random tile (2 or 4)
+def generate_tile():
+    return random.choice([2, 4])
+
+# Function to add a new tile to the grid
+def add_tile(grid):
+    empty_cells = [(row, col) for row in range(GRID_SIZE) for col in range(GRID_SIZE) if grid[row][col] == 0]
+    if empty_cells:
+        row, col = random.choice(empty_cells)
+        grid[row][col] = generate_tile()
+
+# Function to move tiles to the left
+def move_left(grid):
+    for row in range(GRID_SIZE):
+        # Remove zeros
+        row_values = [value for value in grid[row] if value != 0]
+        # Merge adjacent identical values
+        for col in range(1, len(row_values)):
+            if row_values[col] == row_values[col - 1]:
+                row_values[col - 1] *= 2
+                row_values[col] = 0
+        # Remove zeros again after merging
+        row_values = [value for value in row_values if value != 0]
+        # Fill the rest of the row with zeros
+        row_values.extend([0] * (GRID_SIZE - len(row_values)))
+        grid[row] = row_values
+
+# Function to move tiles to the right
+def move_right(grid):
+    # Reverse each row, move left, then reverse again
+    for row in range(GRID_SIZE):
+        grid[row] = grid[row][::-1]
+    move_left(grid)
+    for row in range(GRID_SIZE):
+        grid[row] = grid[row][::-1]
+
+# Function to move tiles up
+def move_up(grid):
+    # Transpose the grid, move left, then transpose again
+    grid_T = list(map(list, zip(*grid)))
+    move_left(grid_T)
+    grid[:] = map(list, zip(*grid_T))
+
+# Function to move tiles down
+def move_down(grid):
+    # Transpose the grid, move right, then transpose again
+    grid_T = list(map(list, zip(*grid)))
+    move_right(grid_T)
+    grid[:] = map(list, zip(*grid_T))
+
+# Main game loop
+grid = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+add_tile(grid)
+add_tile(grid)
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                move_left(grid)
+            elif event.key == pygame.K_RIGHT:
+                move_right(grid)
+            elif event.key == pygame.K_UP:
+                move_up(grid)
+            elif event.key == pygame.K_DOWN:
+                move_down(grid)
+            add_tile(grid)
+
+    screen.fill(WHITE)
+    draw_grid(grid)
+    pygame.display.flip()
+    pygame.time.delay(100)
